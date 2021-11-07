@@ -8,7 +8,7 @@ BPFTOOLS = /kernel-src/samples/bpf
 BPFLOADER = $(BPFTOOLS)/bpf_load.c
 
 CCINCLUDE += -I/kernel-src/tools/testing/selftests/bpf
-CCINCLUDE += -I/kernel-src/include
+#CCINCLUDE += -I/kernel-src/include
 
 LOADINCLUDE += -I/kernel-src/usr/include
 LOADINCLUDE += -I/kernel-src/samples/bpf

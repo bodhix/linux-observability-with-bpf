@@ -16,15 +16,11 @@
 
 // copy from bpf_helpers.h
 #define PT_REGS_PARM1(x) ((x)->rdi)
+//#define PT_REGS_PARM1(x) ((x)->rdi)
 #define PT_REGS_PARM2(x) ((x)->rsi)
 #define PT_REGS_PARM3(x) ((x)->rdx)
-#define PT_REGS_PARM4(x) ((x)->rcx)
-#define PT_REGS_PARM5(x) ((x)->r8)
-#define PT_REGS_RET(x) ((x)->rsp)
-#define PT_REGS_FP(x) ((x)->rbp)
 #define PT_REGS_RC(x) ((x)->rax)
 #define PT_REGS_SP(x) ((x)->rsp)
-#define PT_REGS_IP(x) ((x)->rip)
 
 
 typedef unsigned long long u64;
@@ -40,6 +36,18 @@ typedef struct _script_stat {
     char execve_comm[COMMAND_LEN];
 } script_stat;
 
+
+struct execve_args {
+    short common_type;
+    char common_flags;
+    char common_preempt_count;
+    int common_pid;
+    int __syscall_nr;
+    char *filename;
+    const char *const *argv;
+    const char *const *envp;
+};
+
 /*
  * bpf-map to store starttime and command for script
  */
@@ -50,28 +58,53 @@ struct bpf_map_def SEC("maps") script_table = {
     .max_entries = MAP_HASH_MAX_ENTRIES
 };
 
+SEC("tracepoint/syscalls/sys_enter_execve")
+int enter_sys_execve(struct execve_args *args)
+{
+    // compare executable script name
+    // and record starttime
+    char *filename_p = 0;
 
+    script_stat stat = {};
+
+    stat.time_ns = bpf_ktime_get_ns();
+    stat.pid = bpf_get_current_pid_tgid() >> 32;
+    //bpf_probe_read(&filename_p, sizeof(filename_p), args->filename);
+    //bpf_probe_read_str(stat.execve_comm, sizeof(stat.execve_comm), filename_p);
+    bpf_probe_read_str(stat.execve_comm, sizeof(stat.execve_comm), args->filename);
+    bpf_get_current_comm(stat.parent_comm, sizeof(stat.parent_comm));
+
+    
+    char fmt[] = "execve enter: %s, %p\n";
+    bpf_trace_printk(fmt, sizeof(fmt), stat.parent_comm, filename_p);
+
+    char fmt2[] = "execve enter2: %d, %p, %s\n";
+    bpf_trace_printk(fmt2, sizeof(fmt2), stat.pid, stat.execve_comm, stat.execve_comm);
+    return 0;
+}
+
+/*
 SEC("kprobe/sys_execve")
 int enter_sys_execve(struct pt_regs *regs)
 {
     // compare executable script name
     // and record starttime
-    char *filename_p;
+    char *filename_p = 0;
     script_stat stat = {};
 
     stat.time_ns = bpf_ktime_get_ns();
     stat.pid = bpf_get_current_pid_tgid() >> 32;
     bpf_probe_read(&filename_p, sizeof(filename_p), (void *)PT_REGS_PARM1(regs));
-    bpf_probe_read_str(stat.execve_comm, sizeof(stat.execve_comm), filename_p);
+    bpf_probe_read_str(&stat.execve_comm, sizeof(stat.execve_comm), filename_p);
     bpf_get_current_comm(stat.parent_comm, sizeof(stat.parent_comm));
 
     (void)bpf_map_update_elem(&script_table, &stat.pid, &stat, BPF_NOEXIST);
     
-    char fmt[] = "execve enter: %s, %p, %p\n";
-    bpf_trace_printk(fmt, sizeof(fmt), stat.parent_comm, filename_p, PT_REGS_PARM1(regs));
+    char fmt[] = "execve enter: %s, %x, %x\n";
+    bpf_trace_printk(fmt, sizeof(fmt), stat.parent_comm, filename_p, (char *)PT_REGS_PARM1(regs));
 
-    char fmt2[] = "execve enter2: %d, %s\n";
-    bpf_trace_printk(fmt2, sizeof(fmt2), stat.pid, stat.execve_comm);
+    char fmt2[] = "execve enter2: %d, %x, %s\n";
+    bpf_trace_printk(fmt2, sizeof(fmt2), stat.pid, stat.execve_comm, stat.execve_comm);
     return 0;
 }
 
@@ -123,6 +156,7 @@ int exit_sys_wait4(struct pt_regs *regs)
 
     return 0;
 }
+*/
 
 char _license[] SEC("license") = "GPL";
 

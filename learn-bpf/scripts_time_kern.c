@@ -112,6 +112,8 @@ static int output_stat_event(void *ctx, script_stat *stat)
     n_stat.pid = stat->pid;
     memcpy(n_stat.parent_comm, stat->parent_comm, sizeof(n_stat.parent_comm));
     memcpy(n_stat.execve_comm, stat->execve_comm, sizeof(n_stat.execve_comm));
+    // if BPF_F_CURRENT_CPU is not set, sometimes it would get EOPNOTSUPP error
+    // since event->oncpu is not equal to current smb_processor_id
     int ret = bpf_perf_event_output(ctx, &perf_events, BPF_F_CURRENT_CPU,
                                     &n_stat, sizeof(script_stat));
     if (ret) {

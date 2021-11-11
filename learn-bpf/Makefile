@@ -45,7 +45,7 @@ build: ${BPFCODE.c} ${BPFLOADER}
 	$(CLANG) $(B_CFLAGS) -O2 -target bpf -c $(BPFCODE:=.c) $(CCINCLUDE) -o ${BPFCODE:=.o}
 
 bpfload: build
-	$(CLANG) $(CFLAGS) -DHAVE_ATTR_TEST=0 -o $(EXECABLE) -lelf $(LOADINCLUDE) $(LIBRARY_PATH) $(BPFSO) \
+	$(CLANG) $(CFLAGS) -g -DHAVE_ATTR_TEST=0 -o $(EXECABLE) -lelf $(LOADINCLUDE) $(LIBRARY_PATH) $(BPFSO) \
         $(BPFLOADER) scripts_time_user.c
 
 $(EXECABLE): bpfload

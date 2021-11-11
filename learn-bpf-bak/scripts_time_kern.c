@@ -112,10 +112,9 @@ static int output_stat_event(void *ctx, script_stat *stat)
     n_stat.pid = stat->pid;
     memcpy(n_stat.parent_comm, stat->parent_comm, sizeof(n_stat.parent_comm));
     memcpy(n_stat.execve_comm, stat->execve_comm, sizeof(n_stat.execve_comm));
-    int ret = bpf_perf_event_output(ctx, &perf_events, 0,
+    int ret = bpf_perf_event_output(ctx, &perf_events, BPF_F_CURRENT_CPU,
                                     &n_stat, sizeof(script_stat));
-    if (ret)
-    {
+    if (ret) {
         char fmt_err[] = "perf event output failed, ret = %d\n";
         char fmt_err2[] = "execve: %s, pid: %d, time_ns: %lu\n";
         bpf_trace_printk(fmt_err, sizeof(fmt_err), ret);
@@ -137,8 +136,7 @@ int exit_sys_exit(void *ctx)
 #endif
 
     script_stat *stat = bpf_map_lookup_elem(&script_table, &pid);
-    if (!stat)
-    {
+    if (!stat) {
         return 0;
     }
 

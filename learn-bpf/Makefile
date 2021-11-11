@@ -2,7 +2,7 @@ CLANG = clang
 
 EXECABLE = calculte-scripts-time
 
-BPFCODE = scripts_time
+BPFCODE = scripts_time_kern
 
 BPFTOOLS = /kernel-src/samples/bpf
 BPFLOADER = $(BPFTOOLS)/bpf_load.c
@@ -32,8 +32,9 @@ BPFSO = -lbpf
 # See more context at:
 # https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=06f84d1989b7e58d56fa2e448664585749d41221
 # https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=fce9501aec6bdda45ef3a5e365a5e0de7de7fe2d
-CFLAGS += $(shell grep -q "define HAVE_ATTR_TEST 1" /kernel-src/tools/perf/perf-sys.h \
-                  && echo "-DHAVE_ATTR_TEST=0")
+# we don't need test here
+#CFLAGS += $(shell grep -q "define HAVE_ATTR_TEST 1" /kernel-src/tools/perf/perf-sys.h \
+#                  && echo "-DHAVE_ATTR_TEST=0")
 
 .PHONY: clean $(CLANG) bpfload build
 
@@ -44,8 +45,8 @@ build: ${BPFCODE.c} ${BPFLOADER}
 	$(CLANG) $(B_CFLAGS) -O2 -target bpf -c $(BPFCODE:=.c) $(CCINCLUDE) -o ${BPFCODE:=.o}
 
 bpfload: build
-	$(CLANG) $(CFLAGS) -o $(EXECABLE) -lelf $(LOADINCLUDE) $(LIBRARY_PATH) $(BPFSO) \
-        $(BPFLOADER) loader.c
+	$(CLANG) $(CFLAGS) -DHAVE_ATTR_TEST=0 -o $(EXECABLE) -lelf $(LOADINCLUDE) $(LIBRARY_PATH) $(BPFSO) \
+        $(BPFLOADER) scripts_time_user.c
 
 $(EXECABLE): bpfload
 
